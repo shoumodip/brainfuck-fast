@@ -1,2 +1,3 @@
 brainfuck
-output
+examples/*
+!examples/*.brainfuck

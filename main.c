@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#define ASM_EXT ".fasm"
 #define MEMORY_CAP 30000
-#define OUTPUT_PATH "output.fasm"
 
 const char *map_file(const char *file_path)
 {
@@ -133,7 +133,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    const char *input = map_file(argv[1]);
+    const char *input_path = argv[1];
+    const char *input = map_file(input_path);
     while (*input) {
         switch (*input++) {
         case '>':
@@ -176,10 +177,19 @@ int main(int argc, char **argv)
         }
     }
 
-    FILE *output = fopen(OUTPUT_PATH, "w");
+    const size_t input_size = strlen(input_path);
+    const char *input_ext = memchr(input_path, '.', input_size);
+
+    const size_t output_size = input_ext ? (size_t) (input_ext - input_path) : input_size;
+    char *output_path = malloc(output_size + sizeof(ASM_EXT));
+
+    memcpy(output_path, input_path, output_size);
+    memcpy(output_path + output_size, ASM_EXT, sizeof(ASM_EXT));
+
+    FILE *output = fopen(output_path, "w");
     if (output == NULL) {
         fprintf(stderr, "Error: could not write '%s': %s\n",
-                OUTPUT_PATH, strerror(errno));
+                output_path, strerror(errno));
         exit(1);
     }
 
@@ -243,11 +253,12 @@ int main(int argc, char **argv)
     fclose(output);
 
     cmd_push("fasm ");
-    cmd_push(OUTPUT_PATH);
+    cmd_push(output_path);
     cmd_push(" >/dev/null");
-
     cmd_end();
     system(cmd);
-    unlink(OUTPUT_PATH);
+    unlink(output_path);
+
+    free(output_path);
     return 0;
 }
